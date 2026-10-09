@@ -5,6 +5,12 @@ import { type Prisma, PrismaClient } from "./generated/prisma/client";
 
 const connectionString =
 	process.env.NODE_ENV === "test" ? testDatabase() : liveDatabase();
+const poolMax = boundedPoolMax(process.env.DATABASE_POOL_MAX);
+
+function boundedPoolMax(value: string | undefined): number {
+	const parsed = Number.parseInt(value ?? "5", 10);
+	return Number.isFinite(parsed) ? Math.max(1, Math.min(parsed, 20)) : 5;
+}
 
 function liveDatabase(): string {
 	const url = process.env.DATABASE_URL;
@@ -100,7 +106,11 @@ const logDefinitions: Prisma.LogDefinition[] = [
 
 const createPrismaClient = () => {
 	const client = new PrismaClient({
-		adapter: new PrismaPg({ connectionString }),
+		adapter: new PrismaPg({
+			connectionString,
+			max: poolMax,
+			idleTimeoutMillis: 10_000,
+		}),
 		log: logDefinitions,
 	});
 

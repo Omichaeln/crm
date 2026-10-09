@@ -9,9 +9,9 @@ import { LandingNav } from "@/components/landing/landing-nav";
 import { ProductShot } from "@/components/landing/product-shot/product-shot";
 
 export const metadata: Metadata = {
-	title: "The CRM for agents",
+	title: "Ore and Tar CRM — customer context, kept current",
 	description:
-		"The first agentic CRM experience — durable research agents that read your inbox, keep every record current and book their own follow-ups.",
+		"Ore and Tar CRM keeps customer context, active pipeline, and agent follow-through in one durable system.",
 };
 
 export default function Home() {

@@ -57,6 +57,9 @@ list fails closed.** Parsed on demand. `packages/auth/src/workspace.ts`.
 - **`API_URL`** (`:3001`) mints session cookies and serves `/api/auth/*`;
   `next.config.ts` republishes it as `NEXT_PUBLIC_API_URL`, so one variable does both
   sides. `BETTER_AUTH_URL` is a legacy fallback.
+- **`DATABASE_POOL_MAX`** defaults to `5` connections per process and is capped at `20`.
+  Keep the default on small Railway instances; raise it only after measuring query wait
+  time, because the app, API, and agent each have their own pool.
 - **Editing a file under `packages/` does not restart the API. Restart it by hand.**
   `bun --watch src/main.ts` refuses to watch outside its project directory and
   says so once at boot: `File ... is not in the project directory and will not be
