@@ -24,6 +24,7 @@ export const VISIBLE_CONCURRENCY = DISPATCH.visible.concurrency;
 export const VISIBLE_LEASE_MS = DISPATCH.visible.leaseMs;
 
 export const RESEARCH_BATCH = DISPATCH.research.batch;
+export const RESEARCH_CONCURRENCY = DISPATCH.research.concurrency;
 export const RESEARCH_LEASE_MS = DISPATCH.research.leaseMs;
 
 export async function runVisibleLane(signal?: AbortSignal): Promise<number> {
@@ -146,12 +147,15 @@ export async function runResearchLane(
 
 	let started = 0;
 
-	await Promise.all(
-		tasks.map(async (task) => {
+	await runLimited(
+		RESEARCH_CONCURRENCY,
+		tasks,
+		async (task) => {
 			if (signal?.aborted) return;
 			started += 1;
 			await beginResearch(task, start);
-		}),
+		},
+		signal,
 	);
 
 	return started;

@@ -3,29 +3,36 @@ const MINUTE_MS = 60_000;
 export const DISPATCH = {
 	visible: {
 		batch: 60,
-		concurrency: 6,
+		concurrency: 4,
 		leaseMs: 6 * MINUTE_MS,
 	},
 
 	research: {
 		batch: 12,
+		concurrency: 3,
 		leaseMs: 30 * MINUTE_MS,
 		link: { attempts: 3, retryMs: 250 },
 	},
 
 	builder: {
 		batch: 20,
+		concurrency: 4,
 		maxAttempts: 3,
 		leaseMs: 5 * MINUTE_MS,
 	},
 
 	run: {
 		batch: 20,
+		concurrency: 4,
 		maxPasses: 5,
 		deliveryLeaseMs: 5 * MINUTE_MS,
 		actionLeaseMs: 5 * MINUTE_MS,
 		executionTimeoutMs: 20 * MINUTE_MS,
 		noActionTriggerTypes: ["EVENT", "SCHEDULE", "WEBHOOK"],
+	},
+
+	schedule: {
+		concurrency: 4,
 	},
 
 	task: {

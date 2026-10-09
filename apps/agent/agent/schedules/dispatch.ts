@@ -7,6 +7,8 @@ import {
 	queueDueAgentRuns,
 } from "../lib/custom-agent-dispatch";
 import { brief, drainAll, taskAuth } from "../lib/dispatch";
+import { DISPATCH } from "../lib/dispatch-config";
+import { runLimited } from "../lib/pool";
 import { reconcileStaleTasks } from "../lib/stale-tasks";
 
 export default defineSchedule({
@@ -31,22 +33,31 @@ export default defineSchedule({
 						pendingAgentRunIds(),
 					]);
 
-					await Promise.all([
-						...builderIds.map((builderSubmissionId) =>
-							receive(crm, {
-								message: "Continue a queued private agent-builder chat.",
-								target: { builderSubmissionId },
-								auth: appAuth,
-							}),
+					const deliveries = [
+						...builderIds.map(
+							(builderSubmissionId) => () =>
+								receive(crm, {
+									message: "Continue a queued private agent-builder chat.",
+									target: { builderSubmissionId },
+									auth: appAuth,
+								}),
 						),
-						...runIds.map((runId) =>
-							receive(crm, {
-								message: "Execute a queued deployed agent run.",
-								target: { runId },
-								auth: appAuth,
-							}),
+						...runIds.map(
+							(runId) => () =>
+								receive(crm, {
+									message: "Execute a queued deployed agent run.",
+									target: { runId },
+									auth: appAuth,
+								}),
 						),
-					]);
+					];
+					await runLimited(
+						DISPATCH.schedule.concurrency,
+						deliveries,
+						async (deliver) => {
+							await deliver();
+						},
+					);
 				})(),
 			]),
 		);

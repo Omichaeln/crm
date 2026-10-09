@@ -6,6 +6,7 @@ import { readAgentTriggerConfig } from "@crm/validation/agent-manifest";
 import type { SendFn } from "eve/channels";
 import { z } from "zod";
 import { DISPATCH } from "./dispatch-config";
+import { runLimited } from "./pool";
 import { DEPENDENCY_UNAVAILABLE, runDependencyFailure } from "./run-preflight";
 import {
 	isTerminalRunStatus,
@@ -73,7 +74,17 @@ export async function pendingBuilderSubmissionIds(): Promise<string[]> {
 
 export async function drainBuilder(send: SendFn): Promise<number> {
 	const ids = await pendingBuilderSubmissionIds();
-	await Promise.all(ids.map((id) => dispatchBuilderSubmission(id, send)));
+	await runLimited(DISPATCH.builder.concurrency, ids, async (id) => {
+		try {
+			await dispatchBuilderSubmission(id, send);
+		} catch (error) {
+			console.error(
+				`[agent] builder submission ${id} could not be dispatched: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
+		}
+	});
 	return ids.length;
 }
 
@@ -431,22 +442,20 @@ export async function drainAgentRuns(send: SendFn): Promise<number> {
 		const ids = await pendingAgentRunIds();
 		if (ids.length === 0) break;
 
-		const outcomes = await Promise.all(
-			ids.map((id) =>
-				dispatchAgentRun(id, send).then(
-					() => true,
-					(error) => {
-						console.error(
-							`[agent] run ${id} could not be dispatched: ${
-								error instanceof Error ? error.message : String(error)
-							}`,
-						);
-						return false;
-					},
-				),
-			),
-		);
-		dispatched += outcomes.filter(Boolean).length;
+		let completed = 0;
+		await runLimited(DISPATCH.run.concurrency, ids, async (id) => {
+			try {
+				await dispatchAgentRun(id, send);
+				completed += 1;
+			} catch (error) {
+				console.error(
+					`[agent] run ${id} could not be dispatched: ${
+						error instanceof Error ? error.message : String(error)
+					}`,
+				);
+			}
+		});
+		dispatched += completed;
 	}
 
 	return dispatched;
